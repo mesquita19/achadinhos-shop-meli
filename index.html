@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radar de Achados & Ofertas</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --orange: #ff5722;
+      --yellow: #facc15;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 16px; }
+
+    header { max-width: 1000px; margin: 0 auto 24px; text-align: center; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+
+    /* Painel Admin Simples */
+    .admin-panel {
+      max-width: 1000px;
+      margin: 0 auto 32px;
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+    }
+    .admin-panel h2 { font-size: 1.1rem; margin-bottom: 12px; color: #38bdf8; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    input, select, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .btn-submit {
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+
+    /* Vitrine de Produtos */
+    .grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    /* Cards e Variantes de Cores */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-top: 4px solid transparent;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+    .card.tema-laranja { border-top-color: var(--orange); }
+    .card.tema-amarelo { border-top-color: var(--yellow); }
+
+    .card img {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      background: #334155;
+    }
+    .card-body { padding: 14px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; }
+    .card-title { font-size: 0.95rem; font-weight: 600; line-height: 1.3; margin-bottom: 8px; color: #f1f5f9; }
+    .card-price { font-size: 1.25rem; font-weight: 800; margin-bottom: 12px; }
+
+    .btn-action {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: filter 0.2s;
+    }
+    .btn-action:hover { filter: brightness(1.1); }
+    .card.tema-laranja .btn-action { background: var(--orange); color: #fff; }
+    .card.tema-amarelo .btn-action { background: var(--yellow); color: #000; }
+
+    footer {
+      max-width: 1000px;
+      margin: 40px auto 16px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-top: 1px solid #1e293b;
+      padding-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Radar de Achados & Ofertas</h1>
+    <p style="color: var(--muted); font-size: 0.9rem;">As melhores seleções da internet reunidas em um só lugar</p>
+  </header>
+
+  <!-- Painel de Cadastro de Produtos -->
+  <section class="admin-panel">
+    <h2>+ Cadastrar Novo Achadinho</h2>
+    <form id="productForm" class="form-grid">
+      <input type="text" id="titulo" placeholder="Nome do produto" required />
+      <input type="text" id="preco" placeholder="Preço (ex: R$ 49,90)" required />
+      <input type="url" id="imagemUrl" placeholder="Link da imagem oficial" required />
+      <input type="url" id="linkAfiliado" placeholder="Seu link de afiliado" required />
+      
+      <!-- Seletor manual de cor para diferenciar sem citar marcas -->
+      <select id="cor" required>
+        <option value="tema-laranja">Destaque Laranja</option>
+        <option value="tema-amarelo">Destaque Amarelo</option>
+      </select>
+
+      <label class="checkbox-wrap">
+        <input type="checkbox" id="postTelegram" checked />
+        Postar também no Telegram
+      </label>
+
+      <button type="submit" class="btn-submit">Salvar Produto</button>
+    </form>
+  </section>
+
+  <!-- Grade dos Cards -->
+  <main class="grid" id="productGrid"></main>
+
+  <footer>
+    <p>Aviso: Participamos de programas de afiliados e podemos receber comissões por compras qualificadas através dos links, sem nenhum custo extra para você.</p>
+  </footer>
+
+  <script>
+    // Recupera dados salvos ou inicia vazio
+    let produtos = JSON.parse(localStorage.getItem("meus_produtos") || "[]");
+
+    const form = document.getElementById("productForm");
+    const grid = document.getElementById("productGrid");
+
+    function renderizar() {
+      grid.innerHTML = "";
+      produtos.forEach((prod) => {
+        const card = document.createElement("article");
+        card.className = `card ${prod.cor}`;
+        card.innerHTML = `
+          <img src="${prod.imagemUrl}" alt="${prod.titulo}" loading="lazy" />
+          <div class="card-body">
+            <div>
+              <h3 class="card-title">${prod.titulo}</h3>
+              <p class="card-price">${prod.preco}</p>
+            </div>
+            <a href="${prod.linkAfiliado}" target="_blank" rel="noopener noreferrer" class="btn-action">
+              VER OFERTA ↗
+            </a>
+          </div>
+        `;
+        grid.prepend(card); // Oferta mais recente sempre no topo
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const novoProduto = {
+        titulo: document.getElementById("titulo").value.trim(),
+        preco: document.getElementById("preco").value.trim(),
+        imagemUrl: document.getElementById("imagemUrl").value.trim(),
+        linkAfiliado: document.getElementById("linkAfiliado").value.trim(),
+        cor: document.getElementById("cor").value
+      };
+
+      const dispararTelegram = document.getElementById("postTelegram").checked;
+
+      // Se marcado, aciona o backend seguro
+      if (dispararTelegram) {
+        try {
+          await fetch("/.netlify/functions/postTelegram", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(novoProduto)
+          });
+        } catch (err) {
+          console.error("Erro ao enviar para Telegram:", err);
+        }
+      }
+
+      produtos.push(novoProduto);
+      localStorage.setItem("meus_produtos", JSON.stringify(produtos));
+      renderizar();
+      form.reset();
+    });
+
+    renderizar();
+  </script>
+</body>
+</html>
